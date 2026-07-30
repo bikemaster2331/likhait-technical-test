@@ -6,6 +6,19 @@ import { Expense, ExpenseFormData } from "../types";
 
 const API_BASE_URL = "http://localhost:3000/api";
 
+/*
+ * The backend sends validation errors in an `errors` array. This keeps that
+ * message so the form can explain the problem to the user.
+ */
+async function getErrorMessage(
+  response: Response,
+  fallbackMessage: string,
+): Promise<string> {
+  const data = await response.json().catch(() => null);
+
+  return Array.isArray(data?.errors) ? data.errors.join(" ") : fallbackMessage;
+}
+
 /**
  * Fetch all expenses
  */
@@ -70,7 +83,7 @@ export async function createExpense(data: ExpenseFormData): Promise<Expense> {
   });
 
   if (!response.ok) {
-    throw new Error("Failed to create expense");
+    throw new Error(await getErrorMessage(response, "Failed to create expense"));
   }
 
   return response.json();
@@ -92,7 +105,7 @@ export async function updateExpense(
   });
 
   if (!response.ok) {
-    throw new Error("Failed to update expense");
+    throw new Error(await getErrorMessage(response, "Failed to update expense"));
   }
 
   return response.json();

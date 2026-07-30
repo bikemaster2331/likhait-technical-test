@@ -30,6 +30,15 @@ const HistoryPage: React.FC = () => {
   const initial = getInitialYearMonth();
   const [selectedYear, setSelectedYear] = useState(initial.year);
   const [selectedMonth, setSelectedMonth] = useState(initial.month);
+  // Future months remain navigable, but expense creation is restricted.
+  const today = new Date();
+
+  const isFutureMonth =
+    selectedYear > today.getFullYear() ||
+    (
+      selectedYear === today.getFullYear() &&
+      selectedMonth > today.getMonth() + 1
+    );
 
   // Update URL when year or month changes
   const updateURL = (year: number, month: number) => {
@@ -148,7 +157,11 @@ const HistoryPage: React.FC = () => {
             onYearChange={handleYearChange}
           />
         </div>
-        <Button variant="primary" onClick={() => setIsModalOpen(true)}>
+        <Button
+          variant="primary"
+          onClick={() => setIsModalOpen(true)}
+          disabled={isFutureMonth}
+        >
           Add Expense
         </Button>
       </div>
@@ -173,6 +186,8 @@ const HistoryPage: React.FC = () => {
               <CalendarExpenseTable
                 expenses={expenses}
                 onExpenseUpdated={fetchExpenses}
+                currentMonth={selectedMonth}
+                currentYear={selectedYear}
               />
             </div>
           </>

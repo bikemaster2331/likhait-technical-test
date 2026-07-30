@@ -25,6 +25,30 @@ RSpec.describe "Api::Expenses", type: :request do
     end
   end
 
+  describe "PUT /api/expenses/:id" do
+    let!(:expense) do
+      Expense.create!(
+        description: "Lunch",
+        amount: 100.00,
+        category: food_category,
+        date: Date.current,
+      )
+    end
+
+    it "rejects updating an expense to a future date" do
+      expect {
+        put "/api/expenses/#{expense.id}",
+            params: { expense: { date: Date.current + 1.day } },
+            as: :json
+      }.not_to change { expense.reload.date }
+
+      expect(response).to have_http_status(:unprocessable_entity)
+      expect(JSON.parse(response.body)["errors"]).to include(
+        "Date cannot be in the future",
+      )
+    end
+  end
+
   describe "POST /api/expenses" do
     context "with valid parameters" do
       let(:valid_params) do
@@ -47,6 +71,47 @@ RSpec.describe "Api::Expenses", type: :request do
         json = JSON.parse(response.body)
         expect(json["description"]).to eq("Team Lunch")
         expect(json["amount"]).to eq("150.5")
+      end
+    end
+
+    context "with a past date" do
+      it "creates a new expense" do
+        past_date_params = {
+          expense: {
+            description: "Previous Lunch",
+            amount: 100.00,
+            category_id: food_category.id,
+            date: Date.current - 1.day
+          }
+        }
+
+        expect {
+          post "/api/expenses", params: past_date_params, as: :json
+        }.to change(Expense, :count).by(1)
+
+        expect(response).to have_http_status(:created)
+      end
+    end
+
+    context "with a future date" do
+      it "does not create a new expense" do
+        future_date_params = {
+          expense: {
+            description: "Future Lunch",
+            amount: 100.00,
+            category_id: food_category.id,
+            date: Date.current + 1.day
+          }
+        }
+
+        expect {
+          post "/api/expenses", params: future_date_params, as: :json
+        }.not_to change(Expense, :count)
+
+        expect(response).to have_http_status(:unprocessable_entity)
+        expect(JSON.parse(response.body)["errors"]).to include(
+          "Date cannot be in the future",
+        )
       end
     end
 
