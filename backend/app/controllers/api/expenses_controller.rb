@@ -1,6 +1,7 @@
 class Api::ExpensesController < ApplicationController
   def index
-    expenses = Expense.includes(:category).order(created_at: :desc)
+    expenses = Expense.includes(:category).order(date: :desc, created_at: :desc)
+    # Sort and filter by expense date so backdated entries stay in the correct month and i used created_at only as a tie-breaker for same-day expenses
 
     if params[:year].present? && params[:month].present?
       year = params[:year].to_i
@@ -9,7 +10,8 @@ class Api::ExpensesController < ApplicationController
       start_date = Date.new(year, month, 1)
       end_date = start_date.end_of_month
 
-      expenses = expenses.where(created_at: start_date.beginning_of_day..end_date.end_of_day)
+      expenses = expenses.where(date: start_date..end_date)
+      # Use the expense's date here so each month shows only the entries that belong to it and the code stays clear
     end
 
     render json: expenses.map { |expense| format_expense(expense) }
