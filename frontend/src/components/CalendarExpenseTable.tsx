@@ -14,19 +14,30 @@ import { deleteExpense, updateExpense } from "../services/api";
 interface CalendarExpenseTableProps {
   expenses: Expense[];
   onExpenseUpdated: () => void;
+  currentMonth: number;
+  currentYear: number;
 }
+
 
 const ITEMS_PER_PAGE = 10;
 
 export function CalendarExpenseTable({
   expenses,
   onExpenseUpdated,
+  currentMonth,
+  currentYear,
 }: CalendarExpenseTableProps) {
   const [currentPage, setCurrentPage] = useState(1);
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [deletingExpense, setDeletingExpense] = useState<Expense | null>(null);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const today = new Date();
+  // Check if the selected month/year is ahead of the current date because future months should not allow expense creation
+  const isFutureMonth =
+  currentYear > today.getFullYear() ||
+  (currentYear === today.getFullYear() &&
+    currentMonth > today.getMonth() + 1);
 
   const totalPages = Math.ceil(expenses.length / ITEMS_PER_PAGE);
   const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
@@ -106,16 +117,18 @@ export function CalendarExpenseTable({
     display: "flex",
     gap: "0.5rem",
   };
-
+  // Show a different message when users navigate to future months
   if (expenses.length === 0) {
-    return (
-      <div style={tableStyle}>
-        <div style={emptyStyle}>
-          No expenses found. Add your first expense to get started!
-        </div>
+  return (
+    <div style={tableStyle}>
+      <div style={emptyStyle}>
+        {isFutureMonth
+          ? "You seem excited! Future expenses can't be recorded yet."
+          : "No expenses found. Add your first expense to get started!"}
       </div>
-    );
-  }
+    </div>
+  );
+}
 
   return (
     <>
