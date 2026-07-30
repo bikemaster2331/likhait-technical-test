@@ -128,11 +128,14 @@ export async function addCategory(name: string): Promise<Category> {
       },
     }),
   });
+
+  const data = await response.json();
+
   if (!response.ok) {
-    throw new Error("Failed to create category");
+    throw new Error(data.errors?.join(" ") || "Failed to create category");
   }
 
-  return response.json();
+  return data;
 }
 
 /**

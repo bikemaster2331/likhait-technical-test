@@ -5,7 +5,7 @@
 import React, { useEffect, useState } from "react";
 import { ExpenseFormData } from "../types";
 import { EXPENSE_CATEGORIES } from "../constants/categories";
-import { TextField, SelectBox, Button } from "../vibes";
+import { TextField, SelectBox, Button, Modal } from "../vibes";
 import { useExpenseForm } from "../hooks/useExpenseForm";
 import { addCategory, fetchCategories } from "../services/api";
 
@@ -53,9 +53,11 @@ export function ExpenseForm({
   );
 
   /*
-   * These state variables keep track of whether a category is being added
-   * and whether there is an error to show to the user.
+   * These state variables keep track of the Add Category modal, the name the
+   * user entered, whether it is being saved, and any error to show the user.
    */
+  const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
+  const [newCategoryName, setNewCategoryName] = useState("");
   const [isAddingCategory, setIsAddingCategory] = useState(false);
   const [categoryError, setCategoryError] = useState<string>();
 
@@ -88,14 +90,33 @@ export function ExpenseForm({
   }, []);
 
   /*
-   * This runs when the Add Category button is clicked. It asks for a name,
-   * saves it in the backend, then adds and selects it in the dropdown.
+   * This opens a modal where the user can type the name of their new category.
+   */
+  const openCategoryModal = () => {
+    setNewCategoryName("");
+    setCategoryError(undefined);
+    setIsCategoryModalOpen(true);
+  };
+
+  const closeCategoryModal = () => {
+    if (isAddingCategory) {
+      return;
+    }
+
+    setIsCategoryModalOpen(false);
+    setNewCategoryName("");
+    setCategoryError(undefined);
+  };
+
+  /*
+   * This saves the category from the modal in the backend, then adds and
+   * selects it in the dropdown.
    */
   const handleAddCategory = async () => {
-    const enteredName = window.prompt("Enter category name");
-    const name = enteredName?.trim();
+    const name = newCategoryName.trim();
 
     if (!name) {
+      setCategoryError("Category name is required.");
       return;
     }
 
@@ -121,93 +142,142 @@ export function ExpenseForm({
         ].sort((a, b) => a.label.localeCompare(b.label)),
       );
       handleChange("category", category.name);
+      setIsCategoryModalOpen(false);
+      setNewCategoryName("");
     } catch (error) {
       console.error("Error creating category:", error);
-      setCategoryError("Could not add the category. Please try again.");
+      setCategoryError(
+        error instanceof Error
+          ? error.message
+          : "Could not add the category. Please try again.",
+      );
     } finally {
       setIsAddingCategory(false);
     }
   };
 
   return (
-    <form onSubmit={handleSubmit} style={formStyle}>
-      <TextField
-        label="Amount"
-        type="number"
-        step="0.01"
-        placeholder="0.00"
-        value={formData.amount}
-        onChange={(e) => handleChange("amount", e.target.value)}
-        error={errors.amount}
-        fullWidth
-        required
-      />
-
-      <TextField
-        label="Description"
-        type="text"
-        placeholder="Enter description"
-        value={formData.description}
-        onChange={(e) => handleChange("description", e.target.value)}
-        error={errors.description}
-        fullWidth
-        required
-      />
-
-      <SelectBox
-        label="Category"
-        options={categoryOptions}
-        value={formData.category}
-        onChange={(e) => handleChange("category", e.target.value)}
-        error={errors.category}
-        fullWidth
-        required
-      />
-      <Button
-        type="button"
-        variant="secondary"
-        size="small"
-        onClick={handleAddCategory}
-        disabled={isAddingCategory}
-      >
-        {isAddingCategory ? "Adding category..." : "Add Category"}
-      </Button>
-      {categoryError && (
-        <span role="alert" style={{ color: "#dc1e32", fontSize: "0.875rem" }}>
-          {categoryError}
-        </span>
-      )}
-
-      <TextField
-        label="Date"
-        type="date"
-        value={formData.date}
-        onChange={(e) => handleChange("date", e.target.value)}
-        error={errors.date}
-        fullWidth
-        required
-      />
-
-      <div style={buttonGroupStyle}>
-        <Button
-          type="submit"
-          variant="primary"
-          disabled={isSubmitting}
+    <>
+      <form onSubmit={handleSubmit} style={formStyle}>
+        <TextField
+          label="Amount"
+          type="number"
+          step="0.01"
+          placeholder="0.00"
+          value={formData.amount}
+          onChange={(e) => handleChange("amount", e.target.value)}
+          error={errors.amount}
           fullWidth
+          required
+        />
+
+        <TextField
+          label="Description"
+          type="text"
+          placeholder="Enter description"
+          value={formData.description}
+          onChange={(e) => handleChange("description", e.target.value)}
+          error={errors.description}
+          fullWidth
+          required
+        />
+
+        <SelectBox
+          label="Category"
+          options={categoryOptions}
+          value={formData.category}
+          onChange={(e) => handleChange("category", e.target.value)}
+          error={errors.category}
+          fullWidth
+          required
+        />
+        <Button
+          type="button"
+          variant="secondary"
+          size="small"
+          onClick={openCategoryModal}
+          disabled={isAddingCategory}
         >
-          {isSubmitting ? "Submitting..." : submitLabel}
+          Add Category
         </Button>
-        {onCancel && (
+
+        <TextField
+          label="Date"
+          type="date"
+          value={formData.date}
+          onChange={(e) => handleChange("date", e.target.value)}
+          error={errors.date}
+          fullWidth
+          required
+        />
+
+        <div style={buttonGroupStyle}>
           <Button
-            type="button"
-            variant="secondary"
-            onClick={onCancel}
+            type="submit"
+            variant="primary"
             disabled={isSubmitting}
+            fullWidth
           >
-            Cancel
+            {isSubmitting ? "Submitting..." : submitLabel}
           </Button>
-        )}
-      </div>
-    </form>
+          {onCancel && (
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={onCancel}
+              disabled={isSubmitting}
+            >
+              Cancel
+            </Button>
+          )}
+        </div>
+      </form>
+
+      <Modal
+        isOpen={isCategoryModalOpen}
+        onClose={closeCategoryModal}
+        title="Add Category"
+        maxWidth="400px"
+      >
+        <div style={formStyle}>
+          <TextField
+            label="Category name"
+            type="text"
+            placeholder="Enter category name"
+            value={newCategoryName}
+            onChange={(event) => setNewCategoryName(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === "Enter") {
+                event.preventDefault();
+                handleAddCategory();
+              }
+            }}
+            error={categoryError}
+            fullWidth
+            disabled={isAddingCategory}
+            maxLength={100}
+            autoFocus
+          />
+          <div style={buttonGroupStyle}>
+            <Button
+              type="button"
+              variant="primary"
+              onClick={handleAddCategory}
+              disabled={isAddingCategory}
+            >
+              {isAddingCategory ? "Adding..." : "Save"}
+            </Button>
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={closeCategoryModal}
+              disabled={isAddingCategory}
+            >
+              Cancel
+            </Button>
+          </div>
+        </div>
+      </Modal>
+    </>
   );
 }
