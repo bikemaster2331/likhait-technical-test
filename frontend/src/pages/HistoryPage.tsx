@@ -66,9 +66,13 @@ const HistoryPage: React.FC = () => {
     updateURL(year, selectedMonth);
   };
 
-  const handleMonthChange = (month: number) => {
+  const handleMonthChange = (
+    month: number,
+    year: number,
+  ) => {
     setSelectedMonth(month);
-    updateURL(selectedYear, month);
+    setSelectedYear(year);
+    updateURL(year, month);
   };
 
   const handleAddExpense = async (data: ExpenseFormData) => {
