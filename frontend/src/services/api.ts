@@ -6,6 +6,12 @@ import { Expense, ExpenseFormData } from "../types";
 
 const API_BASE_URL = "http://localhost:3000/api";
 
+/** A category returned by the backend API. */
+export interface Category {
+  id: number;
+  name: string;
+}
+
 /**
  * Fetch all expenses
  */
@@ -34,11 +40,9 @@ export async function getExpenses(
 }
 
 /**
- * Fetch all categories
+ * Fetch all saved categories for the category dropdown.
  */
-export async function fetchCategories(): Promise<
-  Array<{ id: number; name: string }>
-> {
+export async function fetchCategories(): Promise<Category[]> {
   const response = await fetch(`${API_BASE_URL}/categories`);
   if (!response.ok) {
     throw new Error("Failed to fetch categories");
@@ -83,16 +87,49 @@ export async function updateExpense(
   id: number,
   data: Partial<ExpenseFormData>,
 ): Promise<Expense> {
+  const categories = await fetchCategories();
+  const category = categories.find((c) => c.name === data.category);
+
+  const expenseData = {
+    description: data.description,
+    amount: data.amount,
+    category_id: category?.id,
+    date: data.date,
+  };
+
   const response = await fetch(`${API_BASE_URL}/expenses/${id}`, {
     method: "PUT",
     headers: {
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({ expense: data }),
+    body: JSON.stringify({ expense: expenseData }),
   });
 
   if (!response.ok) {
     throw new Error("Failed to update expense");
+  }
+
+  return response.json();
+}
+
+/**
+ * Create a category. The Rails controller expects the name under a
+ * `category` key, and returns the newly created category.
+ */
+export async function addCategory(name: string): Promise<Category> {
+  const response = await fetch(`${API_BASE_URL}/categories`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      category: {
+        name,
+      },
+    }),
+  });
+  if (!response.ok) {
+    throw new Error("Failed to create category");
   }
 
   return response.json();
