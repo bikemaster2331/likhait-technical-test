@@ -7,6 +7,7 @@ import { ExpenseFormData } from "../types";
 import { EXPENSE_CATEGORIES } from "../constants/categories";
 import { TextField, SelectBox, Button } from "../vibes";
 import { useExpenseForm } from "../hooks/useExpenseForm";
+import { formatDate } from "../utils/expenseUtils";
 
 interface ExpenseFormProps {
   initialData?: Partial<ExpenseFormData>;
@@ -21,11 +22,24 @@ export function ExpenseForm({
   onCancel,
   submitLabel = "Add Expense",
 }: ExpenseFormProps) {
-  const { formData, errors, isSubmitting, handleChange, handleSubmit } =
+  const {
+    formData,
+    errors,
+    submissionError,
+    isSubmitting,
+    handleChange,
+    handleSubmit,
+  } =
     useExpenseForm({
       initialData,
       onSubmit,
     });
+
+  /*
+   * This gets today's date in the format used by the date input. We use it
+   * below so the calendar does not allow a future date to be selected.
+   */
+  const today = formatDate(new Date());
 
   const formStyle: React.CSSProperties = {
     display: "flex",
@@ -85,9 +99,16 @@ export function ExpenseForm({
         value={formData.date}
         onChange={(e) => handleChange("date", e.target.value)}
         error={errors.date}
+        max={today}
         fullWidth
         required
       />
+
+      {submissionError && (
+        <span role="alert" style={{ color: "#dc1e32", fontSize: "0.875rem" }}>
+          {submissionError}
+        </span>
+      )}
 
       <div style={buttonGroupStyle}>
         <Button
