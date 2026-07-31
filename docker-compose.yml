@@ -52,12 +52,14 @@ services:
     volumes:
       - ./backend:/rails
       - backend_gems:/usr/local/bundle
+# NOTE:
+# Seeds are intentionally not executed on container startup to avoid
+# deleting existing user data. Run `bundle exec rails db:seed` manually.
     command: >
       sh -c "
         bundle install &&
-        rails db:migrate &&
-        rails db:seed &&
-        rails server -b 0.0.0.0
+        bundle exec rails db:migrate &&
+        bundle exec rails server -b 0.0.0.0
       "
     networks:
       - expense_network
